@@ -1,0 +1,81 @@
+services:
+  portal:
+    build:
+      context: ./portal  
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      EDC_URL: http://edc-provider:19193/management
+      FEDERATED_CATALOG_URL: http://edc-provider:19199/catalog
+      PORT: 8085
+      DEFAULT_USER_ID: ndw-provider
+      DEFAULT_USER_FULL_NAME: ndw-provider
+      DEFAULT_USER_EMAIL: provider@ndw.nu
+      DEFAULT_USER_TENANT_ID: default
+      DEFAULT_USER_ROLES: admin
+
+  edc-connector:
+    image: registry.int.smartlivingnext.de/registry/public/edc:4.0.0
+    command: sh -c 'sleep 30 && java -jar /app/launchers/sln-connector/build/libs/connector.jar'
+    ports:
+      - "19191:19191" # health check
+      - "19193:19193" # management endpoint
+      - "19291:19291" # public endpoint
+      - "19199:19199" # federated catalog endpoint
+    volumes:
+      - ./vault.properties:/resources/vault.properties
+      - ./nodes.json:/resources/nodes.json
+    environment:
+      # contains public & private key for oauth2
+      EDC_VAULT_FILE_PATH: /resources/vault.properties
+      EDC_DSP_CALLBACK_ADDRESS: https://edc-poc.staging.ndw.nu/protocol # Replace with the public address of the provider connector
+      EDC_DATAPLANE_API_PUBLIC_BASEURL: https://edc-poc.staging.ndw.nu/public # Replace with the public address of the provider connector
+      EDC_HOSTNAME: edc-poc.staging.ndw.nu # Replace with the public address of the provider connector
+      WEB_HTTP_CATALOG_PORT: 19199
+      WEB_HTTP_CATALOG_PATH: /catalog
+      WEB_HTTP_PORT: 19191
+      WEB_HTTP_PATH: /api
+      WEB_HTTP_MANAGEMENT_PORT: 19193
+      WEB_HTTP_MANAGEMENT_PATH: /management
+      WEB_HTTP_PROTOCOL_PORT: 19194
+      WEB_HTTP_PROTOCOL_PATH: /protocol
+      EDC_RECEIVER_HTTP_ENDPOINT: http://http-request-logger:4000/receiver/urn:connector:provider/callback
+      EDC_PUBLIC_KEY_ALIAS: public-key
+      EDC_TRANSFER_PROXY_TOKEN_SIGNER_PRIVATEKEY_ALIAS: private-key
+      EDC_TRANSFER_PROXY_TOKEN_VERIFIER_PUBLICKEY_ALIAS: public-key
+      WEB_HTTP_PUBLIC_PORT: 19291
+      WEB_HTTP_PUBLIC_PATH: /public
+      WEB_HTTP_CONTROL_PORT: 19192
+      WEB_HTTP_CONTROL_PATH: /control
+      EDC_SAMPLES_BASIC_03_LOGPREFIX: ProviderLogPrefix
+      # postgres configs
+      EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgres-provider:5432/dataspace?options=-c%20search_path=provider
+      EDC_DATASOURCE_DEFAULT_USER: user
+      EDC_DATASOURCE_DEFAULT_PASSWORD: postgres
+      # oauth2
+      EDC_OAUTH_TOKEN_URL: <keycloak-realm-url>/protocol/openid-connect/token
+      EDC_OAUTH_PROVIDER_JWKS_URL: <keycloak-realm-url>/protocol/openid-connect/certs
+      EDC_OAUTH_CERTIFICATE_ALIAS: public-key
+      EDC_OAUTH_PRIVATE_KEY_ALIAS: private-key
+      EDC_OAUTH_CLIENT_ID: edc-provider
+      EDC_OAUTH_PROVIDER_AUDIENCE: <keycloak-realm-url> # Replace with the address of your oauth provider
+      EDC_OAUTH_VALIDATION_NBF_LEEWAY: 20
+      EDC_OAUTH_VALIDATION_ISSUED_AT_LEEWAY: 5
+      # name of the claim key
+      EDC_AGENT_IDENTITY_KEY: participant_id
+      EDC_PARTICIPANT_ID: edc-provider
+      EDC_NODES_FILE_PATH: /resources/nodes.json
+
+  postgres:
+    container_name: postgres-provider
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dataspace
+    image: bitnamilegacy/postgresql:13.3.0
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres:/docker-entrypoint-initdb.d
+

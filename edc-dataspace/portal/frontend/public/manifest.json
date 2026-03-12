@@ -1,0 +1,15 @@
+{
+    "short_name": "NDW EDC Connector",
+    "name": "NDW EDC Connector",
+    "icons": [
+        {
+            "src": "ndw-icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ],
+    "start_url": "./index.html",
+    "display": "standalone",
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
+}

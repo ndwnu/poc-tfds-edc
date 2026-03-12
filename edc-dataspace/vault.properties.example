@@ -1,0 +1,2 @@
+public-key=-----BEGIN CERTIFICATE-----\n{PUBLIC_KEY}\n-----END CERTIFICATE-----
+private-key=-----BEGIN PRIVATE KEY-----\n{PRIVATE_KEY}\n-----END PRIVATE KEY-----
